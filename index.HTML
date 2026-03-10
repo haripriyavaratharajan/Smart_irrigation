@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AquaFarm – Smart Irrigation</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{
+  --g1:#00ff88;--g2:#00e070;--g3:#00b858;--g4:#008040;
+  --teal:#00d4aa;--lime:#a8ff3e;--gold:#ffcc00;--sky:#38bdf8;--coral:#ff6b6b;--amber:#ffaa00;
+  --bg:#040d07;--bg2:#071209;
+  --sur:rgba(0,255,136,.04);--sur2:rgba(0,255,136,.08);--sur3:rgba(0,255,136,.13);
+  --bd:rgba(0,255,136,.14);--bd2:rgba(0,255,136,.28);
+  --tx:#e8fff2;--tx2:#7ab88a;--tx3:#4a7a5a;
+  --shad:rgba(0,255,136,.14);--card:rgba(4,20,9,.82);
+  --sb:rgba(2,10,5,.96);--tb:rgba(4,13,7,.93);--inp:rgba(0,255,136,.07);
+}
+[data-theme="light"]{
+  --g1:#007a36;--g2:#006a2e;--g3:#005825;--teal:#009980;--gold:#b88a00;
+  --bg:#f0faf3;--bg2:#e2f5e9;
+  --sur:rgba(0,120,60,.05);--sur2:rgba(0,120,60,.09);--sur3:rgba(0,120,60,.14);
+  --bd:rgba(0,120,60,.18);--bd2:rgba(0,120,60,.32);
+  --tx:#0a2614;--tx2:#2e6040;--tx3:#7aaa8a;
+  --shad:rgba(0,120,60,.12);--card:rgba(255,255,255,.88);
+  --sb:rgba(240,250,243,.97);--tb:rgba(240,250,243,.95);--inp:rgba(0,120,60,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;line-height:1.5;transition:background .25s,color .2s}
+h1,h2,h3{font-family:'Playfair Display',serif;line-height:1.15}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:var(--g4);border-radius:4px}
+
+/* LAYOUT */
+.shell{display:flex;min-height:100vh}
+.sidebar{width:256px;min-width:256px;background:var(--sb);border-right:1px solid var(--bd);display:flex;flex-direction:column;position:fixed;height:100vh;z-index:200;backdrop-filter:blur(20px)}
+.main{margin-left:256px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{height:64px;background:var(--tb);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 22px;gap:11px;position:sticky;top:0;z-index:100;backdrop-filter:blur(20px)}
+.content{padding:24px;flex:1}
+
+/* SIDEBAR */
+.sb-logo{padding:18px 16px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px}
+.sb-ico{width:38px;height:38px;background:linear-gradient(135deg,var(--g1),var(--teal));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:0 3px 12px rgba(0,255,136,.3)}
+.sb-name{font-family:'Playfair Display',serif;font-size:18px;font-weight:900;color:var(--g1)}
+.sb-tag{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:1.5px;font-weight:700}
+.sb-nav{flex:1;padding:10px 9px;overflow-y:auto}
+.sb-sec{margin-bottom:18px}
+.sb-sec-t{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--tx3);padding:0 9px;margin-bottom:4px;font-weight:700}
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;color:var(--tx2);margin-bottom:1px;transition:all .16s}
+.sb-item:hover{background:var(--sur2);color:var(--tx)}
+.sb-item.act{background:linear-gradient(135deg,rgba(0,255,136,.15),rgba(0,212,170,.09));color:var(--g1);border:1px solid var(--bd2)}
+.sb-item .ico{font-size:16px;width:20px;text-align:center}
+.sb-bdg{margin-left:auto;background:var(--coral);color:#fff;font-size:10px;padding:1px 6px;border-radius:20px;font-weight:700}
+.sb-user{padding:11px 14px;border-top:1px solid var(--bd);display:flex;align-items:center;gap:9px;cursor:pointer}
+.sb-ava{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;flex-shrink:0}
+
+/* TOPBAR */
+.tb-t{font-size:16px;font-weight:700;flex:1}
+.tb-live{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--g1);font-weight:600;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);padding:4px 10px;border-radius:20px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--g1);animation:blink 1.5s ease infinite;box-shadow:0 0 6px var(--g1)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.tb-btn{width:34px;height:34px;border-radius:9px;background:var(--sur);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;transition:all .16s;color:var(--tx2)}
+.tb-btn:hover{background:var(--sur3);color:var(--g1)}
+.tog{width:64px;height:30px;border-radius:20px;background:var(--sur2);border:1px solid var(--bd2);cursor:pointer;position:relative;display:flex;align-items:center;padding:2px}
+.tog-th{width:25px;height:25px;border-radius:14px;background:linear-gradient(135deg,var(--g1),var(--teal));display:flex;align-items:center;justify-content:center;font-size:12px;transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+[data-theme="light"] .tog-th{transform:translateX(34px)}
+.lsel{background:var(--sur);border:1px solid var(--bd);color:var(--tx);padding:5px 8px;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;cursor:pointer;outline:none}
+.lsel option{background:var(--bg2)}
+
+/* PAGE HEADER */
+.ph{margin-bottom:22px}
+.ph h1{font-size:25px;font-weight:900;margin-bottom:3px}
+.ph p{color:var(--tx2);font-size:13px}
+.ph-tag{display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,rgba(0,255,136,.09),rgba(0,212,170,.06));border:1px solid rgba(0,255,136,.2);border-radius:20px;padding:3px 12px;font-size:10px;color:var(--g1);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--bd);border-radius:15px;padding:17px;backdrop-filter:blur(14px);transition:border-color .2s,box-shadow .2s}
+.card:hover{border-color:var(--bd2)}
+.ct{font-size:13px;font-weight:700;margin-bottom:13px;display:flex;align-items:center;gap:6px;color:var(--tx)}
+
+/* GRIDS */
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:16px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-bottom:16px}
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:13px;margin-bottom:16px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+
+/* STAT CARD */
+.sc{border-radius:15px;padding:17px;border:1px solid transparent;transition:all .22s;position:relative;overflow:hidden}
+.sc:hover{transform:translateY(-2px);box-shadow:0 6px 24px var(--shad)}
+.sc-v{font-family:'Playfair Display',serif;font-size:27px;font-weight:900;line-height:1;margin-bottom:3px}
+.sc-l{font-size:11px;color:var(--tx2);font-weight:500}
+.sc-chg{font-size:11px;margin-top:6px;font-weight:600}
+.sc-gl{position:absolute;bottom:-24px;right:-24px;width:80px;height:80px;border-radius:50%;opacity:.16;filter:blur(20px);pointer-events:none}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border-radius:10px;border:none;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:6px;transition:all .16s;text-decoration:none}
+.btn-p{background:linear-gradient(135deg,var(--g3),var(--teal));color:#fff;box-shadow:0 3px 14px rgba(0,200,130,.28)}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(0,200,130,.38)}
+.btn-o{background:var(--sur);border:1px solid var(--bd2);color:var(--tx2)}
+.btn-o:hover{border-color:var(--g1);color:var(--g1)}
+.btn-sm{padding:5px 11px;font-size:11px;border-radius:8px}
+.btn-full{width:100%;justify-content:center}
+
+/* FORM */
+.field{margin-bottom:14px}
+.fl{font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.5px}
+.req{color:var(--coral);font-size:13px}
+.iw{position:relative}
+.iw .fi{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none}
+.iw .fe{position:absolute;right:11px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:14px;user-select:none}
+input.inp,select.inp{background:var(--inp);border:1.5px solid var(--bd);border-radius:10px;padding:11px 12px;color:var(--tx);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;width:100%;outline:none;transition:all .16s}
+input.inp:focus,select.inp:focus{border-color:var(--g1);box-shadow:0 0 0 3px rgba(0,255,136,.08)}
+input.inp::placeholder{color:var(--tx3)}
+.iw input.inp,.iw select.inp{padding-left:38px}
+select.inp option{background:var(--bg2);color:var(--tx)}
+.inp-err{border-color:var(--coral)!important;box-shadow:0 0 0 3px rgba(255,107,107,.1)!important}
+.ferr{font-size:11px;color:var(--coral);margin-top:3px;font-weight:600}
+input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:3px;background:var(--sur2);outline:none;border:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;background:var(--g1);cursor:pointer;border:2px solid var(--bg);box-shadow:0 0 7px rgba(0,255,136,.4)}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;gap:2px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700}
+.bg{background:rgba(0,255,136,.09);color:var(--g1);border:1px solid rgba(0,255,136,.22)}
+.br{background:rgba(255,107,107,.09);color:var(--coral);border:1px solid rgba(255,107,107,.22)}
+.by{background:rgba(255,204,0,.09);color:var(--gold);border:1px solid rgba(255,204,0,.22)}
+.bs{background:rgba(56,189,248,.09);color:var(--sky);border:1px solid rgba(56,189,248,.22)}
+.bt{background:rgba(0,212,170,.09);color:var(--teal);border:1px solid rgba(0,212,170,.22)}
+
+/* PROGRESS */
+.prog{background:var(--sur2);border-radius:20px;height:6px;overflow:hidden}
+.prog-f{height:100%;border-radius:20px;transition:width .8s ease}
+
+/* ALERT ROWS */
+.arow{display:flex;align-items:flex-start;gap:11px;padding:12px 13px;border-radius:11px;margin-bottom:8px;border:1px solid transparent}
+.a-crit{background:rgba(255,107,107,.06);border-color:rgba(255,107,107,.2)}
+.a-warn{background:rgba(255,204,0,.06);border-color:rgba(255,204,0,.2)}
+.a-info{background:rgba(56,189,248,.06);border-color:rgba(56,189,248,.2)}
+.a-ok{background:rgba(0,255,136,.06);border-color:rgba(0,255,136,.2)}
+
+/* CHARTS */
+.cbox{position:relative;height:205px}
+
+/* TABLE */
+.twrap{overflow-x:auto;border-radius:12px;border:1px solid var(--bd)}
+table{width:100%;border-collapse:collapse}
+thead th{padding:10px 13px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--tx3);border-bottom:1px solid var(--bd);font-weight:700;background:var(--sur)}
+tbody td{padding:10px 13px;font-size:12px;border-bottom:1px solid rgba(0,255,136,.04);color:var(--tx2)}
+tbody tr:hover td{background:var(--sur);color:var(--tx)}
+tbody tr:last-child td{border:none}
+
+/* ZONE MAP */
+.z-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.zone{border-radius:12px;padding:13px;min-height:85px;position:relative;overflow:hidden;transition:all .2s;cursor:default}
+.zone:hover{transform:scale(1.03)}
+.z-a{background:linear-gradient(135deg,rgba(0,255,136,.15),rgba(0,212,170,.09));border:1.5px solid rgba(0,255,136,.3)}
+.z-d{background:linear-gradient(135deg,rgba(255,204,0,.13),rgba(255,170,0,.07));border:1.5px solid rgba(255,204,0,.28)}
+.z-i{background:var(--sur);border:1.5px solid var(--bd)}
+
+/* PRED */
+.ptabs{display:flex;gap:6px;background:var(--sur);border:1px solid var(--bd);border-radius:12px;padding:4px;margin-bottom:16px}
+.ptab{flex:1;padding:9px;border-radius:9px;text-align:center;cursor:pointer;font-weight:700;font-size:12px;color:var(--tx2);transition:.2s}
+.ptab.act{background:linear-gradient(135deg,var(--g3),var(--teal));color:#fff}
+
+/* WEATHER */
+.w7{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:16px}
+.wday{text-align:center;padding:12px 5px;border-radius:12px;background:var(--card);border:1px solid var(--bd);transition:.2s}
+.wday:hover{border-color:var(--sky);transform:translateY(-3px)}
+
+/* TOGGLE */
+.togrow{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--bd)}
+.tog2{position:relative;width:42px;height:23px;flex-shrink:0}
+.tog2 input{display:none}
+.tog2-track{position:absolute;inset:0;border-radius:12px;background:var(--sur2);border:1px solid var(--bd);transition:.25s;cursor:pointer}
+.tog2-thumb{position:absolute;width:17px;height:17px;border-radius:50%;top:2px;left:2px;background:var(--tx3);transition:.25s;cursor:pointer}
+.tog2 input:checked~.tog2-track{background:linear-gradient(135deg,var(--g3),var(--teal));border-color:var(--g1)}
+.tog2 input:checked~.tog2-thumb{left:21px;background:#fff}
+
+/* USER ROW */
+.urow{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;background:var(--sur);margin-bottom:6px;border:1px solid transparent;transition:.16s}
+.urow:hover{background:var(--sur2);border-color:var(--bd)}
+.uava{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes glow{0%,100%{box-shadow:0 0 14px rgba(0,255,136,.22)}50%{box-shadow:0 0 30px rgba(0,255,136,.5)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.fu{animation:fadeUp .35s ease both}
+.a2{animation-delay:.08s}.a3{animation-delay:.14s}.a4{animation-delay:.2s}
+
+/* ============================================================
+   LANDING PAGE
+============================================================ */
+.land{min-height:100vh;overflow:hidden}
+[data-theme="dark"] .land{background:radial-gradient(ellipse at 18% 18%,rgba(0,80,42,.4) 0%,transparent 56%),radial-gradient(ellipse at 82% 82%,rgba(0,58,78,.32) 0%,transparent 56%),#040d07}
+[data-theme="light"] .land{background:radial-gradient(ellipse at 18% 18%,rgba(0,180,90,.1) 0%,transparent 56%),radial-gradient(ellipse at 82% 82%,rgba(0,150,120,.08) 0%,transparent 56%),#f0faf3}
+.land-nav{display:flex;align-items:center;justify-content:space-between;padding:20px 52px}
+.land-hero{padding:68px 52px 52px;max-width:1140px;margin:0 auto;display:flex;gap:52px;align-items:center}
+.hero-eye{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,rgba(0,255,136,.1),rgba(0,212,170,.07));border:1px solid rgba(0,255,136,.22);border-radius:20px;padding:5px 14px;font-size:11px;color:var(--g1);font-weight:700;margin-bottom:20px;letter-spacing:.4px}
+.hero-h1{font-size:62px;font-weight:900;line-height:1.07;margin-bottom:16px}
+.hero-acc{background:linear-gradient(135deg,var(--g1),var(--teal),var(--lime));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.btn-glow{background:linear-gradient(135deg,var(--g1),var(--lime));color:#001a08;font-weight:800;box-shadow:0 4px 20px rgba(0,255,136,.38);font-size:14px;padding:13px 28px;border-radius:12px}
+.btn-glow:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,255,136,.5)}
+.feats{padding:36px 52px 68px;max-width:1140px;margin:0 auto}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.feat-card{background:var(--card);border:1px solid var(--bd);border-radius:15px;padding:22px;transition:all .25s}
+.feat-card:hover{border-color:var(--bd2);transform:translateY(-4px);box-shadow:0 9px 32px var(--shad)}
+.land-foot{text-align:center;padding:32px;border-top:1px solid var(--bd);color:var(--tx3);font-size:12px}
+
+/* ============================================================
+   AUTH PAGES — Sign In & Register
+============================================================ */
+.auth-page{min-height:100vh;display:flex;background:var(--bg);overflow:hidden}
+[data-theme="dark"] .auth-page{background:radial-gradient(ellipse at 8% 30%,rgba(0,80,42,.42) 0%,transparent 50%),radial-gradient(ellipse at 92% 70%,rgba(0,50,68,.38) 0%,transparent 50%),#040d07}
+[data-theme="light"] .auth-page{background:radial-gradient(ellipse at 8% 30%,rgba(0,180,90,.09) 0%,transparent 50%),radial-gradient(ellipse at 92% 70%,rgba(0,150,120,.07) 0%,transparent 50%),#f0faf3}
+
+/* Left brand panel */
+.auth-brand{width:400px;min-width:360px;background:linear-gradient(160deg,rgba(0,100,50,.22),rgba(0,60,80,.18));border-right:1px solid var(--bd);padding:38px 40px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+[data-theme="light"] .auth-brand{background:linear-gradient(160deg,rgba(0,180,90,.07),rgba(0,140,110,.05))}
+.auth-brand::before{content:'';position:absolute;width:280px;height:280px;border-radius:50%;background:radial-gradient(var(--g3),transparent);opacity:.07;top:-70px;right:-70px;pointer-events:none}
+.brand-logo{display:flex;align-items:center;gap:10px;margin-bottom:48px;cursor:pointer}
+.brand-ico{width:42px;height:42px;background:linear-gradient(135deg,var(--g1),var(--teal));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:21px;box-shadow:0 4px 16px rgba(0,255,136,.35);animation:glow 3s ease infinite}
+.brand-name{font-family:'Playfair Display',serif;font-size:20px;font-weight:900;color:var(--g1)}
+.brand-tagline{font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:1.5px;font-weight:700}
+.brand-h{font-size:33px;font-weight:900;line-height:1.16;margin-bottom:12px}
+.brand-acc{background:linear-gradient(135deg,var(--g1),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.brand-sub{font-size:13px;color:var(--tx2);line-height:1.85;margin-bottom:32px}
+.bst-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:auto}
+.bst{background:rgba(0,255,136,.07);border:1px solid rgba(0,255,136,.14);border-radius:11px;padding:13px;text-align:center}
+[data-theme="light"] .bst{background:rgba(0,180,90,.06)}
+.bst-ico{font-size:20px;margin-bottom:4px}
+.bst-v{font-family:'Playfair Display',serif;font-size:20px;font-weight:900;color:var(--g1);line-height:1}
+.bst-l{font-size:10px;color:var(--tx2);margin-top:2px}
+.brand-foot{margin-top:26px;font-size:11px;color:var(--tx3);border-top:1px solid var(--bd);padding-top:14px}
+
+/* Right form panel */
+.auth-form{flex:1;display:flex;flex-direction:column;overflow-y:auto}
+.auth-topbar{padding:16px 40px;display:flex;align-items:center;justify-content:flex-end;gap:10px;border-bottom:1px solid var(--bd)}
+.auth-body{flex:1;display:flex;align-items:center;justify-content:center;padding:28px 40px}
+.auth-card{width:100%;max-width:440px}
+.auth-h{font-size:28px;font-weight:900;margin-bottom:5px}
+.auth-sub{font-size:13px;color:var(--tx2);margin-bottom:24px}
+
+/* Alert banners */
+.banner{padding:11px 14px;border-radius:10px;font-size:13px;font-weight:500;margin-bottom:14px;display:none}
+.b-err{background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.28);color:var(--coral)}
+.b-ok{background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.24);color:var(--g1)}
+
+/* Demo accounts section */
+.demo-section{background:var(--sur);border:1px solid var(--bd);border-radius:12px;padding:13px;margin-top:16px}
+.demo-title{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--tx3);font-weight:700;margin-bottom:10px}
+.demo-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;cursor:pointer;transition:.16s;border:1px solid transparent}
+.demo-row:hover{background:var(--sur2);border-color:var(--bd2)}
+.demo-ava{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0}
+.demo-name{font-size:13px;font-weight:700}
+.demo-creds{font-size:11px;color:var(--tx3);margin-top:1px}
+.demo-arrow{margin-left:auto;font-size:14px;color:var(--g1);font-weight:700;flex-shrink:0}
+
+/* Misc auth */
+.divider{display:flex;align-items:center;gap:10px;color:var(--tx3);font-size:11px;margin:14px 0;text-transform:uppercase;letter-spacing:.4px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--bd)}
+.acheck{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--tx2);cursor:pointer;line-height:1.6;margin-bottom:14px}
+.acheck input{accent-color:var(--g1);flex-shrink:0;margin-top:2px}
+.auth-switch{text-align:center;font-size:13px;color:var(--tx2);margin-top:18px}
+.auth-switch a{color:var(--g1);font-weight:700;cursor:pointer}
+.auth-switch a:hover{text-decoration:underline}
+.forgot-link{float:right;font-size:12px;color:var(--g1);font-weight:600;cursor:pointer;margin-bottom:12px}
+.forgot-link:hover{text-decoration:underline}
+
+/* Password strength */
+.pw-segs{display:flex;gap:3px;margin-bottom:3px}
+.pw-seg{flex:1;height:5px;border-radius:3px;transition:background .3s}
+
+/* Responsive */
+@media(max-width:1050px){.auth-brand{width:320px;min-width:300px;padding:28px 24px}}
+@media(max-width:820px){.auth-brand{display:none}.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr 1fr}.land-nav,.land-hero,.feats{padding-left:20px;padding-right:20px}.hero-h1{font-size:38px}.feat-grid{grid-template-columns:1fr 1fr}.auth-body{padding:20px 18px}}
+@media(max-width:580px){.g4,.g3,.g2{grid-template-columns:1fr}.sidebar{transform:translateX(-100%)}.main{margin-left:0}.content{padding:13px}.frow{grid-template-columns:1fr}.hero-h1{font-size:28px}.feat-grid{grid-template-columns:1fr}.w7{grid-template-columns:repeat(4,1fr)}.z-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+
+/* ── TRANSLATIONS ─────────────────────────────────────────── */
+const LANG={
+  en:{app:'AquaFarm',tag:'Smart Irrigation',dashboard:'Dashboard',sensors:'Sensors',prediction:'AI Prediction',map:'Farm Map',calc:'Water Calc',weather:'Weather',history:'History',analytics:'Analytics',alerts:'Alerts',settings:'Settings',admin:'Admin Panel',about:'About',on:'ON',off:'OFF'},
+  ta:{app:'அக்வாஃபார்ம்',tag:'நுண்ணிய நீர்ப்பாசனம்',dashboard:'டாஷ்போர்டு',sensors:'உணர்கிகள்',prediction:'AI முன்னறிவிப்பு',map:'பண்ணை வரைபடம்',calc:'நீர் கணக்கீடு',weather:'வானிலை',history:'வரலாறு',analytics:'பகுப்பாய்வு',alerts:'எச்சரிக்கைகள்',settings:'அமைப்புகள்',admin:'நிர்வாக பலகை',about:'பற்றி',on:'இயக்கம்',off:'நிறுத்தம்'},
+  hi:{app:'अक्वाफार्म',tag:'स्मार्ट सिंचाई',dashboard:'डैशबोर्ड',sensors:'सेंसर',prediction:'AI भविष्यवाणी',map:'खेत मानचित्र',calc:'जल गणना',weather:'मौसम',history:'इतिहास',analytics:'विश्लेषण',alerts:'अलर्ट',settings:'सेटिंग्स',admin:'प्रशासन',about:'के बारे में',on:'चालू',off:'बंद'},
+};
+const T=k=>(LANG[G.lang]||LANG.en)[k]||k;
+
+/* ── USER STORAGE ─────────────────────────────────────────── */
+// Two built-in demo accounts (always present)
+const DEMO=[
+  {id:1,username:'admin',  pw:'Admin@123',name:'Ravi Kumar',  role:'Admin',   email:'ravi@aquafarm.io',  color:'#00ff88',ini:'RK',farm:'Green Valley Farm'},
+  {id:2,username:'priya',  pw:'Farm@456', name:'Priya Sharma',role:'Operator',email:'priya@aquafarm.io', color:'#38bdf8',ini:'PS',farm:'Sunrise Fields'},
+];
+
+function getAllUsers(){
+  let reg=[];
+  try{ reg=JSON.parse(localStorage.getItem('aqf_users')||'[]'); }catch(e){}
+  const all=[...DEMO];
+  reg.forEach(u=>{
+    if(!all.find(x=>x.username.toLowerCase()===u.username.toLowerCase()))
+      all.push(u);
+  });
+  return all;
+}
+
+function saveNewUser(u){
+  let reg=[];
+  try{ reg=JSON.parse(localStorage.getItem('aqf_users')||'[]'); }catch(e){}
+  reg.push(u);
+  try{ localStorage.setItem('aqf_users',JSON.stringify(reg)); }catch(e){}
+}
+
+const COLORS=['#00ff88','#38bdf8','#ffcc00','#ff6b6b','#00d4aa','#a8ff3e','#ff9955','#c084fc'];
+const rColor=()=>COLORS[Math.floor(Math.random()*COLORS.length)];
+const mkIni=n=>n.trim().split(/\s+/).map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'??';
+
+/* ── GLOBAL STATE ─────────────────────────────────────────── */
+let G={
+  page:'landing', lang:'en', theme:'dark', user:null,
+  sensor:{m:62,t:28,h:71,tank:78,rain:15,pump:true,water:340,energy:4.2},
+  predMode:'sensor',
+  predIn:{m:62,t:28,h:71,tank:78,rain:15},
+  predRes:null,
+  sets:{thr:60,auto:true,sms:true,email:false,push:true},
+  regErr:{},
+  showPw:{li:false,rg:false,rg2:false},
+};
+let CH={};
+
+/* ── HELPERS ──────────────────────────────────────────────── */
+const $ =id=>document.getElementById(id);
+const V =id=>($( id)||{}).value||'';
+const CK=id=>($( id)||{}).checked||false;
+function go(p){ G.page=p; G.predRes=null; G.regErr={}; killCH(); render(); window.scrollTo(0,0); }
+function killCH(){ Object.values(CH).forEach(c=>{try{c.destroy();}catch(e){}}); CH={}; }
+
+/* ── DATA ─────────────────────────────────────────────────── */
+const HIST=Array.from({length:25},(_,i)=>{
+  const d=new Date(Date.now()-i*3600000);
+  return{time:d.toLocaleString('en-IN'),pump:i%3?'ON':'OFF',m:Math.round(55+Math.random()*25),
+    t:Math.round(24+Math.random()*8),h:Math.round(60+Math.random()*20),
+    rain:Math.round(Math.random()*40),w:Math.round(100+Math.random()*300),
+    e:(0.8+Math.random()*2).toFixed(2)};
+});
+const FORE=[
+  {d:'Mon',i:'☀️',hi:32,lo:22,rain:5},{d:'Tue',i:'⛅',hi:29,lo:21,rain:20},
+  {d:'Wed',i:'🌧️',hi:25,lo:19,rain:75},{d:'Thu',i:'🌦️',hi:27,lo:20,rain:40},
+  {d:'Fri',i:'☀️',hi:33,lo:23,rain:5},{d:'Sat',i:'⛅',hi:30,lo:22,rain:15},
+  {d:'Sun',i:'☀️',hi:34,lo:24,rain:3},
+];
+const ZONES=[
+  {id:'A1',crop:'Rice',m:72,s:'a'},{id:'A2',crop:'Wheat',m:43,s:'d'},
+  {id:'A3',crop:'Corn',m:63,s:'a'},{id:'A4',crop:'Soy',m:80,s:'a'},
+  {id:'B1',crop:'Cotton',m:36,s:'d'},{id:'B2',crop:'Millet',m:57,s:'i'},
+  {id:'B3',crop:'Rice',m:68,s:'a'},{id:'B4',crop:'Sugarcane',m:51,s:'i'},
+];
+const ALTS=[
+  {t:'critical',i:'🚨',ti:'Low Tank Level',      desc:'Water tank at 22%. Refill required immediately.',time:'2 min ago'},
+  {t:'warning', i:'🌡️',ti:'High Temperature',    desc:'Zone B1 temperature reached 38°C.',            time:'18 min ago'},
+  {t:'info',    i:'🌧️',ti:'Rain Detected',        desc:'Light rainfall in zones A3 and B3.',           time:'1 hr ago'},
+  {t:'success', i:'✅', ti:'Irrigation Complete',  desc:'Zone A1 completed successfully.',              time:'2 hr ago'},
+  {t:'warning', i:'⚠️', ti:'Pump Pressure Low',    desc:'Pump #2 showing reduced pressure.',            time:'3 hr ago'},
+  {t:'info',    i:'📊',ti:'Weekly Report Ready',   desc:'Weekly water usage analytics is ready.',       time:'5 hr ago'},
+];
+
+/* ── CHART OPTIONS ────────────────────────────────────────── */
+function cOpt(ex={}){
+  const tc=G.theme==='dark'?'#7ab88a':'#3a6e4a';
+  return{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{color:tc,boxWidth:11,font:{size:11,family:"'Plus Jakarta Sans'"}}},
+      tooltip:{backgroundColor:'rgba(4,20,9,.95)',borderColor:'rgba(0,255,136,.28)',borderWidth:1,titleColor:'#00ff88',bodyColor:'#e8fff2'}},
+    scales:{x:{ticks:{color:tc,font:{size:10}},grid:{color:'rgba(0,255,136,.05)'}},
+            y:{ticks:{color:tc,font:{size:10}},grid:{color:'rgba(0,255,136,.05)'}}},
+    ...ex};
+}
+
+/* ── GAUGE SVG ────────────────────────────────────────────── */
+function gauge(v,max,color,label){
+  const r=50,c=2*Math.PI*r,p=v/max;
+  return`<div style="text-align:center;padding:8px 0">
+    <svg width="135" height="100" viewBox="0 0 116 92" style="transform:rotate(-90deg);overflow:visible">
+      <circle cx="58" cy="62" r="${r}" fill="none" stroke="rgba(0,255,136,.07)" stroke-width="9"
+        stroke-dasharray="${c*.75} ${c*.25}" stroke-dashoffset="${-c*.125}"/>
+      <circle cx="58" cy="62" r="${r}" fill="none" stroke="${color}" stroke-width="9" stroke-linecap="round"
+        stroke-dasharray="${c*.75} ${c*.25}"
+        stroke-dashoffset="${-(c*.125)+(c*.75)-(c*.75*p)}"
+        style="filter:drop-shadow(0 0 7px ${color});transition:stroke-dashoffset 1s ease"/>
+    </svg>
+    <div style="margin-top:-48px">
+      <div style="font-family:'Playfair Display',serif;font-size:23px;font-weight:900;color:${color}">${v}${max<=100?'%':''}</div>
+      <div style="font-size:11px;color:var(--tx2);margin-top:2px">${label}</div>
+    </div>
+  </div>`;
+}
+
+/* ── SIDEBAR ──────────────────────────────────────────────── */
+function Sidebar(){
+  const grps=[
+    {h:'Main', items:[['🏠',T('dashboard'),'dashboard'],['📡',T('sensors'),'sensors'],['🤖',T('prediction'),'prediction'],['🗺️',T('map'),'map']]},
+    {h:'Tools',items:[['💧',T('calc'),'calculator'],['🌤️',T('weather'),'weather'],['📜',T('history'),'history'],['📊',T('analytics'),'analytics']]},
+    {h:'System',items:[['🔔',T('alerts'),'alerts',3],['⚙️',T('settings'),'settings'],['🛡️',T('admin'),'admin'],['ℹ️',T('about'),'about']]},
+  ];
+  const u=G.user;
+  return`<div class="sidebar">
+    <div class="sb-logo">
+      <div class="sb-ico">💧</div>
+      <div><div class="sb-name">${T('app')}</div><div class="sb-tag">${T('tag')}</div></div>
+    </div>
+    <nav class="sb-nav">
+      ${grps.map(g=>`<div class="sb-sec">
+        <div class="sb-sec-t">${g.h}</div>
+        ${g.items.map(([ico,lbl,pg,b])=>`
+          <div class="sb-item${G.page===pg?' act':''}" onclick="go('${pg}')">
+            <span class="ico">${ico}</span>${lbl}
+            ${b?`<span class="sb-bdg">${b}</span>`:''}
+          </div>`).join('')}
+      </div>`).join('')}
+    </nav>
+    <div class="sb-user" onclick="go('settings')">
+      <div class="sb-ava" style="background:linear-gradient(135deg,${u?.color||'#00b858'},var(--teal))">${u?.ini||'?'}</div>
+      <div>
+        <div style="font-size:13px;font-weight:700">${u?.name||'Guest'}</div>
+        <div style="font-size:10px;color:var(--tx3)">${u?.role||''} · ${u?.farm||''}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ── TOPBAR ───────────────────────────────────────────────── */
+function Topbar(title){
+  const now=new Date().toLocaleString('en-IN',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  return`<div class="topbar">
+    <div class="tb-t">${title}</div>
+    <div class="tb-live"><span class="dot"></span>Live</div>
+    <div style="font-size:10px;color:var(--tx3);white-space:nowrap">${now}</div>
+    <select class="lsel" onchange="changeLang(this.value)">
+      <option value="en"${G.lang==='en'?' selected':''}>🌐 EN</option>
+      <option value="ta"${G.lang==='ta'?' selected':''}>TA</option>
+      <option value="hi"${G.lang==='hi'?' selected':''}>HI</option>
+    </select>
+    <div class="tog" onclick="toggleTheme()"><div class="tog-th">${G.theme==='dark'?'🌙':'☀️'}</div></div>
+    <div class="tb-btn" onclick="go('alerts')" title="Alerts">🔔</div>
+    <div class="tb-btn" onclick="doLogout()" title="Sign Out" style="color:var(--coral)">🚪</div>
+  </div>`;
+}
+
+/* ── STAT CARD ────────────────────────────────────────────── */
+function SC({ico,label,val,unit='',chg,color,bg}){
+  return`<div class="sc fu" style="background:${bg||'var(--card)'};border-color:${color}22">
+    <div style="font-size:26px;margin-bottom:8px">${ico}</div>
+    <div class="sc-v" style="color:${color}">${val}<span style="font-size:12px;opacity:.5"> ${unit}</span></div>
+    <div class="sc-l">${label}</div>
+    ${chg!=null?`<div class="sc-chg" style="color:${chg>0?'var(--g1)':'var(--coral)'}">${chg>0?'↑':'↓'} ${Math.abs(chg)}%</div>`:''}
+    <div class="sc-gl" style="background:${color}"></div>
+  </div>`;
+}
+
+/* ============================================================
+   PAGE: LANDING
+============================================================ */
+function pLanding(){
+  return`<div class="land">
+    <nav class="land-nav">
+      <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="go('landing')">
+        <div class="sb-ico">💧</div><div class="sb-name">${T('app')}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="color:var(--tx2);cursor:pointer;font-size:13px;font-weight:500" onclick="go('about')">About</span>
+        <select class="lsel" onchange="changeLang(this.value)">
+          <option value="en"${G.lang==='en'?' selected':''}>🌐 English</option>
+          <option value="ta"${G.lang==='ta'?' selected':''}>தமிழ்</option>
+          <option value="hi"${G.lang==='hi'?' selected':''}>हिन्दी</option>
+        </select>
+        <div class="tog" onclick="toggleTheme()"><div class="tog-th">${G.theme==='dark'?'🌙':'☀️'}</div></div>
+        <button class="btn btn-o" style="padding:9px 20px" onclick="go('login')">Sign In →</button>
+        <button class="btn btn-glow" onclick="go('register')">Register Free</button>
+      </div>
+    </nav>
+    <div class="land-hero">
+      <div style="flex:1">
+        <div class="hero-eye"><span class="dot"></span>AI-Powered Smart Irrigation</div>
+        <h1 class="hero-h1">Grow Smarter.<br/><span class="hero-acc">Save Every Drop.</span></h1>
+        <p style="font-size:15px;color:var(--tx2);max-width:520px;line-height:1.8;margin-bottom:28px">AquaFarm uses real-time IoT sensor data and AI to optimise every drop of water — reducing waste by up to 40% and boosting crop yields.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:46px">
+          <button class="btn btn-glow" onclick="go('register')">🚀 Get Started Free</button>
+          <button class="btn btn-o" style="padding:13px 24px;font-size:14px" onclick="go('login')">Sign In →</button>
+        </div>
+        <div style="display:flex;gap:40px;flex-wrap:wrap">
+          ${[['40%','Water Saved'],['14','Sensors'],['98%','Uptime'],['2.4×','Crop Yield']].map(([v,l])=>`
+            <div>
+              <div style="font-family:'Playfair Display',serif;font-size:34px;font-weight:900;color:var(--g1);line-height:1">${v}</div>
+              <div style="font-size:12px;color:var(--tx2);margin-top:3px">${l}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div style="flex-shrink:0;display:flex;flex-direction:column;gap:11px;animation:float 4s ease-in-out infinite">
+        <div class="card" style="width:210px;background:linear-gradient(135deg,rgba(0,255,136,.11),rgba(0,212,170,.07))">
+          <div style="font-size:11px;color:var(--tx3);margin-bottom:6px">💧 Soil Moisture</div>
+          <div style="font-family:'Playfair Display',serif;font-size:32px;font-weight:900;color:var(--g1)">72%</div>
+          <div style="font-size:11px;color:var(--g3);margin-top:3px">↑ Optimal Level</div>
+        </div>
+        <div class="card" style="width:210px">
+          <div style="font-size:11px;color:var(--tx3);margin-bottom:6px">🤖 AI Recommendation</div>
+          <div style="font-size:13px;font-weight:800;color:var(--g1)">✅ No Irrigation Needed Today</div>
+          <div style="font-size:11px;color:var(--tx2);margin-top:4px">Rain expected tomorrow (75%)</div>
+        </div>
+      </div>
+    </div>
+    <div class="feats">
+      <div style="text-align:center;margin-bottom:32px">
+        <h2 style="font-size:34px;font-weight:900;margin-bottom:8px">Everything Your Farm Needs</h2>
+        <p style="font-size:14px;color:var(--tx2)">From live monitoring to AI predictions — built for modern farmers.</p>
+      </div>
+      <div class="feat-grid">
+        ${[['🤖','AI Irrigation Engine','Predicts irrigation need from soil, weather and crop data.'],
+           ['📡','Real-Time Sensors','Live moisture, temperature, humidity and tank level.'],
+           ['🌤️','Weather Integration','Delays irrigation when rain is expected.'],
+           ['💧','Water Budgeting','Cuts waste by analysing saturation curves.'],
+           ['📊','Deep Analytics','Track usage, energy and health over time.'],
+           ['🌾','Multi-Crop Support','Rice, Wheat, Cotton, Corn, Sugarcane and more.']].map(([ic,ti,de])=>`
+          <div class="feat-card fu">
+            <div style="font-size:32px;margin-bottom:11px">${ic}</div>
+            <div style="font-size:14px;font-weight:800;margin-bottom:6px">${ti}</div>
+            <div style="font-size:12px;color:var(--tx2);line-height:1.7">${de}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="land-foot">© 2025 AquaFarm · Smart Irrigation for Modern Agriculture · Built for Hackathon</div>
+  </div>`;
+}
+
+/* ============================================================
+   PAGE: SIGN IN
+============================================================ */
+function pLogin(){
+  return`<div class="auth-page">
+
+    <!-- ── LEFT: Branding ── -->
+    <div class="auth-brand">
+      <div class="brand-logo" onclick="go('landing')">
+        <div class="brand-ico">💧</div>
+        <div><div class="brand-name">${T('app')}</div><div class="brand-tagline">${T('tag')}</div></div>
+      </div>
+      <h2 class="brand-h">Welcome Back to<br/><span class="brand-acc">AquaFarm</span></h2>
+      <p class="brand-sub">Sign in to access your live farm dashboard, AI predictions, water analytics and sensor monitoring.</p>
+      <div class="bst-grid">
+        ${[['💧','40%','Water Saved'],['🌾','24%','Yield Boost'],['📡','14','Sensors'],['⚡','98%','Uptime']].map(([ic,v,l])=>`
+          <div class="bst"><div class="bst-ico">${ic}</div><div class="bst-v">${v}</div><div class="bst-l">${l}</div></div>`).join('')}
+      </div>
+      <div class="brand-foot">© 2025 AquaFarm · Hackathon Project</div>
+    </div>
+
+    <!-- ── RIGHT: Form ── -->
+    <div class="auth-form">
+
+      <!-- Top bar: lang + theme -->
+      <div class="auth-topbar">
+        <select class="lsel" onchange="changeLang(this.value)">
+          <option value="en"${G.lang==='en'?' selected':''}>🌐 English</option>
+          <option value="ta"${G.lang==='ta'?' selected':''}>தமிழ்</option>
+          <option value="hi"${G.lang==='hi'?' selected':''}>हिन्दी</option>
+        </select>
+        <div class="tog" onclick="toggleTheme()"><div class="tog-th">${G.theme==='dark'?'🌙':'☀️'}</div></div>
+        <span style="font-size:12px;color:var(--tx3);cursor:pointer" onclick="go('landing')">← Back to Home</span>
+      </div>
+
+      <!-- Form body -->
+      <div class="auth-body">
+        <div class="auth-card fu">
+          <h1 class="auth-h">Sign In 👋</h1>
+          <p class="auth-sub">Enter your credentials to access your dashboard</p>
+
+          <!-- Error banner (shown on wrong credentials) -->
+          <div id="liBanner" class="banner b-err"></div>
+
+          <!-- Username / Email -->
+          <div class="field">
+            <label class="fl">Username or Email</label>
+            <div class="iw">
+              <span class="fi">👤</span>
+              <input class="inp" id="liU" type="text"
+                placeholder="e.g. admin  or  you@email.com"
+                autocomplete="username"
+                onkeydown="if(event.key==='Enter') document.getElementById('liP').focus()"/>
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="field">
+            <label class="fl">Password</label>
+            <div class="iw">
+              <span class="fi">🔒</span>
+              <input class="inp" id="liP"
+                type="password"
+                placeholder="Your password"
+                autocomplete="current-password"
+                onkeydown="if(event.key==='Enter') doLogin()"/>
+              <span class="fe" id="liEye" onclick="toggleEye('li')">👁️</span>
+            </div>
+          </div>
+
+          <!-- Remember me + Forgot -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+            <label class="acheck" style="margin:0">
+              <input type="checkbox" id="liRem"/> <span>Remember me for 7 days</span>
+            </label>
+            <span class="forgot-link" onclick="showForgot()">Forgot password?</span>
+          </div>
+
+          <!-- Sign In button -->
+          <button class="btn btn-p btn-full" style="padding:13px;font-size:15px" onclick="doLogin()">
+            Sign In &nbsp;→
+          </button>
+
+          <!-- Demo accounts section -->
+          <div class="divider">or try a demo account instantly</div>
+          <div class="demo-section">
+            <div class="demo-title">Demo Accounts — click any row to sign in instantly</div>
+            ${DEMO.map(u=>`
+              <div class="demo-row" onclick="quickLogin('${u.username}')">
+                <div class="demo-ava" style="background:linear-gradient(135deg,${u.color},${u.color}88)">${u.ini}</div>
+                <div style="flex:1">
+                  <div class="demo-name">${u.name} <span class="badge ${u.role==='Admin'?'by':'bs'}" style="font-size:9px;margin-left:5px">${u.role}</span></div>
+                  <div class="demo-creds">
+                    Username: <strong style="color:var(--g1)">${u.username}</strong>
+                    &nbsp;&nbsp;Password: <strong style="color:var(--g1)">${u.pw}</strong>
+                  </div>
+                </div>
+                <div class="demo-arrow">→</div>
+              </div>`).join('')}
+          </div>
+
+          <!-- Switch to Register -->
+          <div class="auth-switch">
+            Don't have an account? <a onclick="go('register')">Create one free →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   PAGE: REGISTER
+============================================================ */
+function pRegister(){
+  const E=G.regErr;
+  return`<div class="auth-page">
+
+    <!-- ── LEFT: Branding ── -->
+    <div class="auth-brand">
+      <div class="brand-logo" onclick="go('landing')">
+        <div class="brand-ico">💧</div>
+        <div><div class="brand-name">${T('app')}</div><div class="brand-tagline">${T('tag')}</div></div>
+      </div>
+      <h2 class="brand-h">Join the Future<br/><span class="brand-acc">of Farming</span></h2>
+      <p class="brand-sub">Create your free account. No credit card needed. Your data is saved securely in your browser.</p>
+      <div style="margin-top:28px">
+        ${['Free — no subscription required',
+           'AI irrigation recommendations',
+           'Live sensor data dashboard',
+           'Multi-language: English, Tamil, Hindi',
+           'Works on mobile, tablet & desktop',
+           'Your data stays in your browser (localStorage)'].map(f=>`
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px;font-size:13px;color:var(--tx2)">
+            <span style="color:var(--g1);font-size:13px">✅</span>${f}
+          </div>`).join('')}
+      </div>
+      <div class="brand-foot" style="margin-top:auto">© 2025 AquaFarm · Hackathon Project</div>
+    </div>
+
+    <!-- ── RIGHT: Register Form ── -->
+    <div class="auth-form">
+      <div class="auth-topbar">
+        <select class="lsel" onchange="changeLang(this.value)">
+          <option value="en"${G.lang==='en'?' selected':''}>🌐 English</option>
+          <option value="ta"${G.lang==='ta'?' selected':''}>தமிழ்</option>
+          <option value="hi"${G.lang==='hi'?' selected':''}>हिन्दी</option>
+        </select>
+        <div class="tog" onclick="toggleTheme()"><div class="tog-th">${G.theme==='dark'?'🌙':'☀️'}</div></div>
+        <span style="font-size:12px;color:var(--tx3);cursor:pointer" onclick="go('landing')">← Back to Home</span>
+      </div>
+
+      <div class="auth-body" style="align-items:flex-start;padding-top:24px">
+        <div class="auth-card fu" style="max-width:470px">
+          <h1 class="auth-h">Create Account 🌱</h1>
+          <p class="auth-sub">Fields marked <span style="color:var(--coral)">*</span> are required</p>
+
+          <!-- Banners -->
+          <div id="rgBanner" class="banner b-err"></div>
+          <div id="rgOkBanner" class="banner b-ok"></div>
+
+          <!-- Row 1: Full Name + Username -->
+          <div class="frow">
+            <div class="field">
+              <label class="fl">Full Name <span style="color:var(--coral)">*</span></label>
+              <div class="iw">
+                <span class="fi">👤</span>
+                <input class="inp${E.name?' inp-err':''}" id="rgName" type="text"
+                  placeholder="e.g. Ravi Kumar" autocomplete="name"/>
+              </div>
+              ${E.name?`<div class="ferr">⚠ ${E.name}</div>`:''}
+            </div>
+            <div class="field">
+              <label class="fl">Username <span style="color:var(--coral)">*</span></label>
+              <div class="iw">
+                <span class="fi">🪪</span>
+                <input class="inp${E.username?' inp-err':''}" id="rgUser" type="text"
+                  placeholder="e.g. ravi123" autocomplete="username"/>
+              </div>
+              ${E.username?`<div class="ferr">⚠ ${E.username}</div>`:''}
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="field">
+            <label class="fl">Email Address <span style="color:var(--coral)">*</span></label>
+            <div class="iw">
+              <span class="fi">✉️</span>
+              <input class="inp${E.email?' inp-err':''}" id="rgEmail" type="email"
+                placeholder="you@example.com" autocomplete="email"/>
+            </div>
+            ${E.email?`<div class="ferr">⚠ ${E.email}</div>`:''}
+          </div>
+
+          <!-- Row 2: Farm Name + Role -->
+          <div class="frow">
+            <div class="field">
+              <label class="fl">Farm Name</label>
+              <div class="iw">
+                <span class="fi">🌾</span>
+                <input class="inp" id="rgFarm" type="text" placeholder="e.g. Green Valley Farm"/>
+              </div>
+            </div>
+            <div class="field">
+              <label class="fl">Your Role</label>
+              <div class="iw">
+                <span class="fi">🎯</span>
+                <select class="inp" id="rgRole">
+                  <option value="Farmer">🧑‍🌾 Farmer</option>
+                  <option value="Operator">⚙️ Operator</option>
+                  <option value="Viewer">👁️ Viewer</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="field">
+            <label class="fl">Password <span style="color:var(--coral)">*</span></label>
+            <div class="iw">
+              <span class="fi">🔒</span>
+              <input class="inp${E.password?' inp-err':''}" id="rgPw"
+                type="password"
+                placeholder="Min 6 chars, 1 uppercase, 1 number"
+                autocomplete="new-password"
+                oninput="livePwStr(this.value)"/>
+              <span class="fe" id="rgEye" onclick="toggleEye('rg')">👁️</span>
+            </div>
+            ${E.password?`<div class="ferr">⚠ ${E.password}</div>`:''}
+            <!-- Strength bar -->
+            <div id="pwBar" style="margin-top:7px"></div>
+          </div>
+
+          <!-- Confirm Password -->
+          <div class="field">
+            <label class="fl">Confirm Password <span style="color:var(--coral)">*</span></label>
+            <div class="iw">
+              <span class="fi">🔑</span>
+              <input class="inp${E.confirm?' inp-err':''}" id="rgPw2"
+                type="password"
+                placeholder="Re-enter your password"
+                autocomplete="new-password"
+                oninput="liveMatch()"/>
+              <span class="fe" id="rg2Eye" onclick="toggleEye('rg2')">👁️</span>
+            </div>
+            ${E.confirm?`<div class="ferr">⚠ ${E.confirm}</div>`:''}
+            <div id="matchHint" style="font-size:11px;font-weight:600;margin-top:4px"></div>
+          </div>
+
+          <!-- Terms checkbox -->
+          <label class="acheck">
+            <input type="checkbox" id="rgAgree"/>
+            <span>I understand this is a hackathon demo. My account will be saved in this browser's local storage.</span>
+          </label>
+
+          <!-- Submit button -->
+          <button class="btn btn-p btn-full" style="padding:13px;font-size:15px" onclick="doRegister()">
+            Create My Account 🌱
+          </button>
+
+          <!-- Switch to Login -->
+          <div class="auth-switch">
+            Already have an account? <a onclick="go('login')">Sign in instead →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   AUTH LOGIC
+============================================================ */
+
+/* SIGN IN */
+function doLogin(){
+  const raw = V('liU').trim().toLowerCase();
+  const pw  = V('liP');
+
+  // Basic empty checks
+  if(!raw){ showBanner('liBanner','err','Please enter your username or email address.'); return; }
+  if(!pw){  showBanner('liBanner','err','Please enter your password.'); return; }
+
+  // Find user
+  const users = getAllUsers();
+  const match = users.find(u =>
+    u.username.toLowerCase()===raw || u.email.toLowerCase()===raw
+  );
+
+  if(!match){
+    showBanner('liBanner','err','❌  No account found with that username or email. Please register first.');
+    shakeForm(); return;
+  }
+  if(match.pw!==pw && match.password!==pw){
+    showBanner('liBanner','err','❌  Wrong password. Please try again.');
+    shakeForm(); return;
+  }
+
+  // ✅ SUCCESS — log in
+  G.user = {...match};
+  if(CK('liRem')){
+    try{ localStorage.setItem('aqf_sess',JSON.stringify({u:match.username,ts:Date.now()})); }catch(e){}
+  }
+  G.page='dashboard'; killCH(); render();
+}
+
+/* Quick demo login — click a demo row */
+function quickLogin(username){
+  const found = getAllUsers().find(u=>u.username===username);
+  if(found){ G.user={...found}; G.page='dashboard'; killCH(); render(); }
+}
+
+/* REGISTER */
+function doRegister(){
+  const name     = V('rgName').trim();
+  const username = V('rgUser').trim();
+  const email    = V('rgEmail').trim().toLowerCase();
+  const farm     = V('rgFarm').trim() || 'My Farm';
+  const role     = V('rgRole') || 'Farmer';
+  const pw       = V('rgPw');
+  const pw2      = V('rgPw2');
+  const agreed   = CK('rgAgree');
+
+  const E={};
+
+  // --- Validation ---
+  if(name.length<2)
+    E.name='Full name must be at least 2 characters.';
+
+  if(username.length<3)
+    E.username='Username must be at least 3 characters.';
+  else if(!/^[a-zA-Z0-9_]+$/.test(username))
+    E.username='Only letters, numbers and underscore (_) are allowed.';
+
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    E.email='Please enter a valid email address (e.g. you@example.com).';
+
+  if(!pw || pw.length<6)
+    E.password='Password must be at least 6 characters long.';
+  else if(!/[A-Z]/.test(pw))
+    E.password='Password must contain at least one uppercase letter (A–Z).';
+  else if(!/[0-9]/.test(pw))
+    E.password='Password must contain at least one number (0–9).';
+
+  if(pw && pw2 && pw!==pw2)
+    E.confirm='Passwords do not match. Please re-enter.';
+
+  // Duplicate checks
+  const allUsers = getAllUsers();
+  if(!E.username && allUsers.find(u=>u.username.toLowerCase()===username.toLowerCase()))
+    E.username='This username is already taken. Please choose a different one.';
+  if(!E.email && allUsers.find(u=>u.email.toLowerCase()===email))
+    E.email='An account with this email already exists.';
+
+  // If there are validation errors — re-render the page (shows red fields)
+  if(Object.keys(E).length>0){
+    G.regErr=E;
+    render();
+    // Show top banner after render
+    setTimeout(()=>showBanner('rgBanner','err','⚠️  Please fix the errors highlighted below.'),30);
+    return;
+  }
+
+  // Terms not accepted
+  if(!agreed){
+    showBanner('rgBanner','err','Please tick the checkbox to agree and continue.');
+    return;
+  }
+
+  // ✅ Create account
+  const newUser={
+    id:Date.now(), username, pw, password:pw,
+    name, role, email, farm,
+    color:rColor(), ini:mkIni(name),
+  };
+  saveNewUser(newUser);
+  G.regErr={};
+
+  // Show success, then redirect to login after 2 seconds
+  render();
+  setTimeout(()=>{
+    showBanner('rgOkBanner','ok',`✅  Account created for "${name}"! Taking you to Sign In…`);
+  },30);
+  setTimeout(()=>{ G.page='login'; render(); },2200);
+}
+
+/* LOGOUT */
+function doLogout(){
+  G.user=null; G.page='login'; G.regErr={};
+  try{ localStorage.removeItem('aqf_sess'); }catch(e){}
+  killCH(); render();
+}
+
+/* FORGOT PASSWORD */
+function showForgot(){
+  alert(
+    'AquaFarm – Password Recovery\n\n' +
+    'Demo accounts:\n' +
+    '  admin  →  Admin@123\n' +
+    '  priya  →  Farm@456\n\n' +
+    'For your own registered account:\n' +
+    'Passwords are stored in your browser\'s localStorage.\n' +
+    'If you have forgotten it, clear your site data\n' +
+    'and register again.\n\n' +
+    '(This is a hackathon demo — no email recovery available.)'
+  );
+}
+
+/* Helpers */
+function showBanner(id,type,msg){
+  const el=$(id); if(!el)return;
+  el.className='banner '+(type==='ok'?'b-ok':'b-err');
+  el.textContent=msg; el.style.display='block';
+  setTimeout(()=>{ if(el)el.style.display='none'; },5000);
+}
+function shakeForm(){
+  const el=document.querySelector('.auth-form');
+  if(el){ el.style.animation='shake .4s ease'; setTimeout(()=>{if(el)el.style.animation='';},450); }
+}
+function toggleEye(key){
+  const map={li:'liP',rg:'rgPw',rg2:'rgPw2'};
+  const emap={li:'liEye',rg:'rgEye',rg2:'rg2Eye'};
+  G.showPw[key]=!G.showPw[key];
+  const inp=$(map[key]); if(inp) inp.type=G.showPw[key]?'text':'password';
+  const eye=$(emap[key]); if(eye) eye.textContent=G.showPw[key]?'🙈':'👁️';
+}
+function livePwStr(pw){
+  const bar=$('pwBar'); if(!bar)return;
+  let s=0;
+  if(pw.length>=6)s++;if(pw.length>=10)s++;
+  if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;
+  const cols=['','#ff6b6b','#ffaa00','#ffcc00','#00d4aa','#00ff88'];
+  const labs=['','Too Short','Weak','Fair','Strong','Very Strong'];
+  bar.innerHTML=pw?`
+    <div class="pw-segs">
+      ${[1,2,3,4,5].map(i=>`<div class="pw-seg" style="background:${i<=s?cols[s]:'rgba(255,255,255,.09)'}"></div>`).join('')}
+    </div>
+    <div style="font-size:11px;font-weight:700;color:${cols[s]};margin-top:3px">${labs[s]}</div>`:'';
+}
+function liveMatch(){
+  const hint=$('matchHint'); if(!hint)return;
+  const a=V('rgPw'), b=V('rgPw2');
+  if(!b){hint.innerHTML='';return;}
+  hint.innerHTML=a===b
+    ?'<span style="color:var(--g1)">✓ Passwords match</span>'
+    :'<span style="color:var(--coral)">✗ Passwords do not match</span>';
+}
+
+/* ============================================================
+   PAGE: DASHBOARD
+============================================================ */
+function pDash(){
+  const s=G.sensor;
+  return`<div>
+    <div class="ph fu"><div class="ph-tag"><span class="dot"></span>Live</div>
+      <h1>Farm Overview 🌾</h1>
+      <p>Real-time status · Last updated: ${new Date().toLocaleTimeString()}</p>
+    </div>
+    <div class="g4">
+      ${SC({ico:'💧',label:'Soil Moisture',val:s.m,unit:'%',chg:3,color:'var(--teal)',bg:'linear-gradient(135deg,rgba(0,212,170,.09),rgba(0,180,150,.04))'})}
+      ${SC({ico:'🫙',label:'Tank Level',   val:s.tank,unit:'%',chg:-2,color:'var(--sky)',bg:'linear-gradient(135deg,rgba(56,189,248,.09),rgba(30,160,230,.04))'})}
+      ${SC({ico:'🌧️',label:'Rain Prob',   val:s.rain,unit:'%',chg:5,color:'var(--gold)',bg:'linear-gradient(135deg,rgba(255,204,0,.09),rgba(255,170,0,.04))'})}
+      ${SC({ico:'⚡',label:'Pump Status', val:s.pump?T('on'):T('off'),color:s.pump?'var(--g1)':'var(--coral)',bg:s.pump?'linear-gradient(135deg,rgba(0,255,136,.1),rgba(0,200,100,.04))':'linear-gradient(135deg,rgba(255,107,107,.09),rgba(255,80,80,.04))'})}
+    </div>
+    <div class="g4">
+      ${SC({ico:'💦',label:'Water Today', val:s.water,unit:'L',chg:-8,color:'var(--g1)',bg:'linear-gradient(135deg,rgba(0,255,136,.09),rgba(0,200,100,.04))'})}
+      ${SC({ico:'🌡️',label:'Temperature',val:s.t,unit:'°C',chg:1,color:'#ff9955',bg:'linear-gradient(135deg,rgba(255,153,85,.09),rgba(255,120,60,.04))'})}
+      ${SC({ico:'💨',label:'Humidity',    val:s.h,unit:'%',chg:-1,color:'var(--sky)',bg:'linear-gradient(135deg,rgba(56,189,248,.09),rgba(30,160,230,.04))'})}
+      ${SC({ico:'⚡',label:'Energy Today',val:s.energy,unit:'kWh',chg:2,color:'var(--gold)',bg:'linear-gradient(135deg,rgba(255,204,0,.09),rgba(255,170,0,.04))'})}
+    </div>
+    <div class="g2">
+      <div class="card fu a3"><div class="ct">📈 Water Usage · 7 Days</div><div class="cbox"><canvas id="cDW"></canvas></div></div>
+      <div class="card fu a4"><div class="ct">📡 Sensor Trends</div><div class="cbox"><canvas id="cDS"></canvas></div></div>
+    </div>
+    <div class="g3">
+      <div class="card fu a3"><div class="ct">⛅ Today's Weather</div>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+          <div style="font-size:50px">☀️</div>
+          <div><div style="font-family:'Playfair Display',serif;font-size:36px;font-weight:900">32°C</div>
+               <div style="font-size:12px;color:var(--tx2)">Sunny · Kovilpatti, TN</div></div>
+        </div>
+        <div class="g2" style="margin:0">
+          ${[['💧','Humidity','71%'],['💨','Wind','14 km/h'],['👁️','Visibility','10 km'],['🌧️','Rain','5%']].map(([ic,l,v])=>`
+            <div style="background:var(--sur);border-radius:9px;padding:9px;font-size:11px;border:1px solid var(--bd)">
+              <div style="color:var(--tx3)">${ic} ${l}</div>
+              <div style="font-weight:700;margin-top:2px">${v}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="card fu a4"><div class="ct">🚨 Recent Alerts</div>
+        ${ALTS.slice(0,3).map(a=>`
+          <div class="arow a-${a.t==='critical'?'crit':a.t==='warning'?'warn':a.t==='info'?'info':'ok'}" style="padding:8px 10px">
+            <span style="font-size:17px">${a.i}</span>
+            <div><div style="font-size:12px;font-weight:700">${a.ti}</div>
+                 <div style="font-size:10px;color:var(--tx3)">${a.time}</div></div>
+          </div>`).join('')}
+        <button class="btn btn-o btn-sm btn-full" style="margin-top:5px" onclick="go('alerts')">View All →</button>
+      </div>
+      <div class="card fu a5"><div class="ct">🌿 Crop Health</div>
+        ${[['Zone A1','Rice',85,'var(--g1)'],['Zone A3','Corn',72,'var(--teal)'],['Zone B3','Rice',61,'var(--gold)'],['Zone B1','Cotton',38,'var(--coral)']].map(([z,c,v,col])=>`
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+              <span style="color:var(--tx2)">${z} · ${c}</span>
+              <span style="color:${col};font-weight:700">${v}%</span>
+            </div>
+            <div class="prog"><div class="prog-f" style="width:${v}%;background:${col}"></div></div>
+          </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+function initDashCH(){
+  const d=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  if($('cDW')) CH.cDW=new Chart($('cDW'),{type:'bar',data:{labels:d,datasets:[{label:'Water (L)',data:[280,320,180,420,360,290,340],backgroundColor:'rgba(0,255,136,.32)',borderColor:'#00ff88',borderWidth:1.5,borderRadius:7}]},options:cOpt()});
+  if($('cDS')) CH.cDS=new Chart($('cDS'),{type:'line',data:{labels:d,datasets:[{label:'Moisture%',data:[55,62,58,70,65,60,62],borderColor:'#00d4aa',backgroundColor:'rgba(0,212,170,.09)',tension:.4,fill:true,pointRadius:2},{label:'Humidity%',data:[65,70,68,75,71,69,71],borderColor:'#38bdf8',tension:.4,pointRadius:2}]},options:cOpt()});
+}
+
+/* PAGE: SENSORS */
+function pSensors(){
+  const s=G.sensor;
+  return`<div>
+    <div class="ph fu"><h1>📡 ${T('sensors')}</h1><p>Real-time readings · auto-updates every 5 seconds</p></div>
+    <div class="g4 fu">
+      ${[[s.m,100,'var(--teal)','Soil Moisture'],[s.t,50,'#ff9955','Temperature'],[s.h,100,'var(--sky)','Humidity'],[s.tank,100,'var(--g1)','Tank Level']].map(([v,mx,c,l])=>`<div class="card">${gauge(v,mx,c,l)}</div>`).join('')}
+    </div>
+    <div class="g2">
+      <div class="card fu a2"><div class="ct">📈 Moisture Trend</div><div class="cbox"><canvas id="cSM"></canvas></div></div>
+      <div class="card fu a3"><div class="ct">🌡️ Temp & Humidity</div><div class="cbox"><canvas id="cSTH"></canvas></div></div>
+    </div>
+  </div>`;
+}
+function initSensorCH(){
+  const lb=Array.from({length:20},(_,i)=>i+'m');
+  const rnd=(b,n)=>Array.from({length:20},()=>Math.round(b+(Math.random()-.5)*n*2));
+  if($('cSM'))  CH.cSM =new Chart($('cSM'), {type:'line',data:{labels:lb,datasets:[{label:'Moisture%',data:rnd(62,8),borderColor:'#00d4aa',backgroundColor:'rgba(0,212,170,.12)',tension:.4,fill:true,pointRadius:2}]},options:cOpt({animation:{duration:0}})});
+  if($('cSTH')) CH.cSTH=new Chart($('cSTH'),{type:'line',data:{labels:lb,datasets:[{label:'Temp°C',data:rnd(28,4),borderColor:'#ff9955',tension:.4,pointRadius:2},{label:'Humidity%',data:rnd(70,7),borderColor:'#38bdf8',tension:.4,pointRadius:2}]},options:cOpt({animation:{duration:0}})});
+}
+
+/* PAGE: PREDICTION */
+function pPred(){
+  const p=G.predIn; const s=G.sensor;
+  const disp=G.predMode==='sensor'?{m:Math.round(s.m),t:Math.round(s.t),h:Math.round(s.h),tank:Math.round(s.tank),rain:Math.round(s.rain)}:p;
+  return`<div>
+    <div class="ph fu"><h1>🤖 ${T('prediction')}</h1><p>AI-powered irrigation recommendation</p></div>
+    <div class="ptabs">
+      <div class="ptab${G.predMode==='sensor'?' act':''}" onclick="setPredMode('sensor')">📡 Sensor Auto-Fetch</div>
+      <div class="ptab${G.predMode==='manual'?' act':''}" onclick="setPredMode('manual')">✏️ Manual Entry</div>
+    </div>
+    <div class="g2">
+      <div class="card fu">
+        <div class="ct">📊 Input Parameters</div>
+        ${G.predMode==='sensor'?`<div style="display:flex;align-items:center;gap:8px;padding:9px 11px;background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.18);border-radius:9px;margin-bottom:13px;font-size:12px;color:var(--tx2)">
+          <span class="dot"></span> Using live sensor values
+          <button class="btn btn-o btn-sm" style="margin-left:auto" onclick="syncPred()">🔄 Refresh</button>
+        </div>`:''}
+        ${[['m','Soil Moisture','%',0,100,disp.m,'var(--teal)'],['t','Temperature','°C',0,50,disp.t,'#ff9955'],['h','Humidity','%',0,100,disp.h,'var(--sky)'],['tank','Tank Level','%',0,100,disp.tank,'var(--g1)'],['rain','Rain Probability','%',0,100,disp.rain,'var(--sky)']].map(([k,l,u,mn,mx,v,c])=>`
+          <div class="field">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <label class="fl" style="margin:0">${l}</label>
+              <span style="font-size:12px;color:${c};font-weight:800" id="pv${k}">${v}${u}</span>
+            </div>
+            <input type="range" min="${mn}" max="${mx}" value="${v}"
+              ${G.predMode==='sensor'?'disabled style="opacity:.4;cursor:not-allowed"':''}
+              oninput="updPred('${k}',this.value,'${u}')"/>
+          </div>`).join('')}
+        <button class="btn btn-p btn-full" style="padding:12px;font-size:14px;margin-top:6px" onclick="runPred()">🤖 Generate Recommendation</button>
+      </div>
+      <div class="fu a2">
+        ${G.predRes?`
+          <div style="padding:22px;border-radius:14px;text-align:center;margin-bottom:13px;${G.predRes.go?'background:linear-gradient(135deg,rgba(0,255,136,.09),rgba(0,212,170,.06));border:1px solid rgba(0,255,136,.22)':'background:linear-gradient(135deg,rgba(255,107,107,.09),rgba(255,80,80,.05));border:1px solid rgba(255,107,107,.22)'}">
+            <div style="font-size:50px;margin-bottom:9px">${G.predRes.go?'💧':'🌿'}</div>
+            <div style="font-size:26px;font-weight:900;font-family:'Playfair Display',serif;color:${G.predRes.go?'var(--g1)':'var(--coral)'};margin-bottom:5px">${G.predRes.go?'IRRIGATE NOW':'SKIP IRRIGATION'}</div>
+            <div style="font-size:12px;color:var(--tx2);max-width:300px;margin:0 auto 14px;line-height:1.6">${G.predRes.reason}</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+              ${[['Water Needed',G.predRes.water,'var(--teal)'],['Duration',G.predRes.dur,'var(--sky)'],['Pump',G.predRes.pump,G.predRes.go?'var(--g1)':'var(--coral)']].map(([l,v,c])=>`
+                <div style="background:rgba(0,0,0,.18);border-radius:10px;padding:10px;text-align:center">
+                  <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:900;color:${c};margin-bottom:2px">${v}</div>
+                  <div style="font-size:10px;color:var(--tx2)">${l}</div>
+                </div>`).join('')}
+            </div>
+            <div style="margin-top:11px;font-size:11px;color:var(--tx2)">Confidence: <strong>${G.predRes.conf}%</strong></div>
+          </div>`:`
+          <div class="card" style="text-align:center;padding:44px;margin-bottom:13px">
+            <div style="font-size:60px;opacity:.15;margin-bottom:13px">🤖</div>
+            <div style="font-size:15px;font-weight:800;font-family:'Playfair Display',serif;margin-bottom:6px">Awaiting Input</div>
+            <div style="color:var(--tx2);font-size:13px">Set parameters and click Generate.</div>
+          </div>`}
+      </div>
+    </div>
+  </div>`;
+}
+function setPredMode(m){ G.predMode=m; G.predRes=null; if(m==='sensor') syncPred(); killCH(); render(); }
+function syncPred(){ const s=G.sensor; G.predIn={m:Math.round(s.m),t:Math.round(s.t),h:Math.round(s.h),tank:Math.round(s.tank),rain:Math.round(s.rain)}; render(); }
+function updPred(k,v,u){ G.predIn[k]=parseInt(v); const el=$('pv'+k); if(el) el.textContent=v+u; }
+function runPred(){
+  const p=G.predIn; const thr=G.sets.thr;
+  const go=p.m<thr&&p.rain<30&&p.tank>20;
+  const def=Math.max(0,thr-p.m); const w=go?Math.round(def*2.5):0; const d=go?Math.round(w/3.2):0;
+  const conf=go?Math.min(99,Math.round(((thr-p.m)/thr*.5+(1-p.rain/100)*.3+(p.tank/100)*.2)*100)):0;
+  G.predRes={go,water:w+'L',dur:d+' min',pump:go?'ON':'OFF',conf,
+    reason:go?`Moisture (${p.m}%) is below threshold (${thr}%) and rain probability is low (${p.rain}%).`
+             :`Moisture (${p.m}%) is sufficient, or rain is expected (${p.rain}%).`};
+  killCH(); render();
+}
+
+/* PAGE: FARM MAP */
+function pMap(){
+  return`<div>
+    <div class="ph fu"><h1>🗺️ ${T('map')}</h1><p>Farm zone moisture levels and irrigation status</p></div>
+    <div class="card fu"><div class="z-grid">
+      ${ZONES.map(z=>`
+        <div class="zone z-${z.s==='a'?'a':z.s==='d'?'d':'i'}">
+          <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--tx3);margin-bottom:4px">${z.id}</div>
+          <div style="font-family:'Playfair Display',serif;font-size:21px;font-weight:900;color:${z.s==='a'?'var(--g1)':z.s==='d'?'var(--gold)':'var(--tx3)'}">${z.m}%</div>
+          <div style="font-size:10px;color:var(--tx2);margin-top:2px">${z.crop}</div>
+          <span style="position:absolute;bottom:7px;right:9px;font-size:16px">${z.s==='a'?'💧':z.s==='d'?'⚠️':'😴'}</span>
+        </div>`).join('')}
+    </div></div>
+  </div>`;
+}
+
+/* PAGE: CALCULATOR */
+function pCalc(){
+  return`<div>
+    <div class="ph fu"><h1>💧 ${T('calc')}</h1><p>Calculate exact water requirements for your field</p></div>
+    <div class="g2">
+      <div class="card fu">
+        <div class="ct">📋 Field Parameters</div>
+        <div class="field"><label class="fl">Field Size (acres)</label><input class="inp" id="fSz" type="number" value="5" min="0.1"/></div>
+        <div class="field"><label class="fl">Crop Type</label><select class="inp" id="fCrop"><option>Rice</option><option>Wheat</option><option>Cotton</option><option>Corn</option><option>Sugarcane</option><option>Soybean</option></select></div>
+        <div class="field"><label class="fl">Soil Type</label><select class="inp" id="fSoil"><option>Clay</option><option>Sandy</option><option>Loamy</option><option>Silt</option></select></div>
+        <div class="field"><label class="fl">Current Moisture (%)</label><input class="inp" id="fMst" type="number" value="45" min="0" max="100"/></div>
+        <button class="btn btn-p btn-full" style="padding:12px" onclick="doCalc()">⚡ Calculate</button>
+      </div>
+      <div id="calcOut" class="card">
+        <div style="text-align:center;padding:36px;color:var(--tx3)">
+          <div style="font-size:48px;opacity:.2;margin-bottom:11px">💧</div>
+          Fill parameters and click Calculate
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function doCalc(){
+  const sz=parseFloat(V('fSz'))||5, crop=V('fCrop')||'Rice', soil=V('fSoil')||'Loamy', mst=parseFloat(V('fMst'))||45;
+  const cf={Rice:6,Wheat:4,Cotton:5,Corn:5,Sugarcane:8,Soybean:4}[crop]||5;
+  const sf={Clay:.8,Sandy:1.3,Loamy:1,Silt:.9}[soil]||1;
+  const def=Math.max(0,70-mst)/100, water=Math.round(sz*cf*sf*def*1000), dur=Math.round(water/3.2);
+  const el=$('calcOut');
+  if(el) el.innerHTML=`<div class="ct">📊 Results</div>
+    <div class="g2" style="margin:0 0 13px">
+      ${[['Water Required',water+'L','var(--teal)'],['Pump Duration',dur+' min','var(--sky)'],['Coverage',sz+' acres','var(--g1)'],['Efficiency','87%','var(--gold)']].map(([l,v,c])=>`
+        <div style="background:var(--sur2);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--bd)">
+          <div style="font-family:'Playfair Display',serif;font-size:21px;font-weight:900;color:${c};margin-bottom:3px">${v}</div>
+          <div style="font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase">${l}</div>
+        </div>`).join('')}
+    </div>
+    <div style="padding:10px;background:rgba(0,255,136,.04);border-radius:9px;border:1px solid rgba(0,255,136,.12);font-size:12px;color:var(--tx2)">
+      💡 <strong>${crop}</strong> on <strong>${soil}</strong> soil · Moisture deficit: <strong style="color:var(--gold)">${Math.round(def*100)}%</strong>
+    </div>`;
+}
+
+/* PAGE: WEATHER */
+function pWeather(){
+  return`<div>
+    <div class="ph fu"><h1>🌤️ ${T('weather')}</h1><p>7-day forecast · Kovilpatti, Tamil Nadu</p></div>
+    <div class="card fu" style="margin-bottom:16px;background:linear-gradient(135deg,rgba(56,189,248,.07),rgba(0,212,170,.04))">
+      <div style="display:flex;align-items:center;gap:22px;flex-wrap:wrap">
+        <div style="font-size:64px">☀️</div>
+        <div><div style="font-family:'Playfair Display',serif;font-size:52px;font-weight:900;line-height:1">32°C</div>
+             <div style="color:var(--tx2);font-size:13px;margin-top:2px">Sunny · Feels like 34°C</div></div>
+      </div>
+    </div>
+    <div class="w7 fu">
+      ${FORE.map(w=>`
+        <div class="wday">
+          <div style="font-size:10px;color:var(--tx3);font-weight:700;margin-bottom:6px;text-transform:uppercase">${w.d}</div>
+          <div style="font-size:24px;margin-bottom:6px">${w.i}</div>
+          <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:900">${w.hi}°</div>
+          <div style="font-size:11px;color:var(--tx3)">${w.lo}°</div>
+          <div style="font-size:10px;color:var(--sky);margin-top:5px;font-weight:600">${w.rain}% 🌧️</div>
+        </div>`).join('')}
+    </div>
+    <div class="g2">
+      <div class="card fu"><div class="ct">🌡️ Temperature Forecast</div><div class="cbox"><canvas id="cWT"></canvas></div></div>
+      <div class="card fu a2"><div class="ct">🌧️ Rain Probability</div><div class="cbox"><canvas id="cWR"></canvas></div></div>
+    </div>
+  </div>`;
+}
+function initWeatherCH(){
+  const d=FORE.map(w=>w.d), o=cOpt();
+  if($('cWT')) CH.cWT=new Chart($('cWT'),{type:'line',data:{labels:d,datasets:[{label:'High°C',data:FORE.map(w=>w.hi),borderColor:'#ff9955',backgroundColor:'rgba(255,153,85,.1)',tension:.4,fill:true},{label:'Low°C',data:FORE.map(w=>w.lo),borderColor:'#38bdf8',tension:.4}]},options:o});
+  if($('cWR')) CH.cWR=new Chart($('cWR'),{type:'bar',data:{labels:d,datasets:[{label:'Rain%',data:FORE.map(w=>w.rain),backgroundColor:FORE.map(w=>w.rain>50?'rgba(56,189,248,.6)':'rgba(56,189,248,.26)'),borderColor:'#38bdf8',borderWidth:1,borderRadius:7}]},options:o});
+}
+
+/* PAGE: HISTORY */
+function pHistory(){
+  return`<div>
+    <div class="ph fu"><h1>📜 ${T('history')}</h1><p>Complete sensor log and irrigation events</p></div>
+    <div class="card fu" style="margin-bottom:13px">
+      <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center">
+        <input class="inp" type="date" style="width:145px"/>
+        <input class="inp" type="date" style="width:145px"/>
+        <button class="btn btn-p btn-sm">🔍 Filter</button>
+        <button class="btn btn-o btn-sm" onclick="exportCSV()">📥 Export CSV</button>
+      </div>
+    </div>
+    <div class="card fu a2"><div class="twrap">
+      <table>
+        <thead><tr><th>Time</th><th>Pump</th><th>Moisture</th><th>Temp</th><th>Humidity</th><th>Rain%</th><th>Water (L)</th><th>Energy</th></tr></thead>
+        <tbody>
+          ${HIST.map(r=>`<tr>
+            <td style="font-size:11px;white-space:nowrap">${r.time}</td>
+            <td><span class="badge ${r.pump==='ON'?'bg':'br'}">${r.pump}</span></td>
+            <td style="color:var(--teal);font-weight:600">${r.m}%</td>
+            <td style="color:#ff9955;font-weight:600">${r.t}°C</td>
+            <td style="color:var(--sky);font-weight:600">${r.h}%</td>
+            <td>${r.rain}%</td>
+            <td style="color:var(--g1);font-weight:600">${r.w}L</td>
+            <td style="color:var(--gold);font-weight:600">${r.e} kWh</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div></div>
+  </div>`;
+}
+function exportCSV(){
+  const h='Time,Pump,Moisture,Temp,Humidity,Rain,Water,Energy\n';
+  const rows=HIST.map(r=>`"${r.time}",${r.pump},${r.m},${r.t},${r.h},${r.rain},${r.w},${r.e}`).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([h+rows],{type:'text/csv'}));
+  a.download='aquafarm-history.csv'; a.click();
+}
+
+/* PAGE: ANALYTICS */
+function pAnalytics(){
+  return`<div>
+    <div class="ph fu"><h1>📊 ${T('analytics')}</h1><p>Water, energy and efficiency insights</p></div>
+    <div class="g4">
+      ${[['💧','Total Water Saved','12,400 L','↑ 38%','var(--teal)'],['⚡','Energy Saved','28 kWh','↑ 22%','var(--gold)'],['🌾','Crop Yield','+24%','Above avg','var(--g1)'],['💰','Cost Savings','₹4,200','This month','#ff9955']].map(([ic,l,v,ch,c])=>`
+        <div class="card fu" style="text-align:center">
+          <div style="font-size:24px;margin-bottom:7px">${ic}</div>
+          <div style="font-family:'Playfair Display',serif;font-size:23px;font-weight:900;color:${c}">${v}</div>
+          <div style="font-size:11px;color:var(--tx2);margin-top:2px">${l}</div>
+          <div style="font-size:11px;color:var(--g1);margin-top:5px;font-weight:700">${ch}</div>
+        </div>`).join('')}
+    </div>
+    <div class="g2">
+      <div class="card fu a2"><div class="ct">💧 Monthly Water Usage</div><div class="cbox"><canvas id="cAW"></canvas></div></div>
+      <div class="card fu a3"><div class="ct">⚡ Energy Consumption</div><div class="cbox"><canvas id="cAE"></canvas></div></div>
+    </div>
+    <div class="g2">
+      <div class="card fu a3"><div class="ct">🌧️ Rain vs Irrigation</div><div class="cbox"><canvas id="cAR"></canvas></div></div>
+      <div class="card fu a4"><div class="ct">🌾 Crop Efficiency Radar</div><div class="cbox"><canvas id="cAC"></canvas></div></div>
+    </div>
+  </div>`;
+}
+function initAnalyticsCH(){
+  const mn=['Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'], o=cOpt();
+  const or={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:G.theme==='dark'?'#7ab88a':'#3a6e4a',font:{size:11}}}},scales:{r:{ticks:{color:G.theme==='dark'?'#7ab88a':'#3a6e4a',font:{size:10},backdropColor:'transparent'},grid:{color:'rgba(0,255,136,.09)'},pointLabels:{color:G.theme==='dark'?'#7ab88a':'#3a6e4a',font:{size:11}}}}};
+  if($('cAW')) CH.cAW=new Chart($('cAW'),{type:'bar',data:{labels:mn,datasets:[{label:'kL',data:mn.map(()=>+(5+Math.random()*7).toFixed(1)),backgroundColor:'rgba(0,255,136,.3)',borderColor:'#00ff88',borderRadius:7,borderWidth:1}]},options:o});
+  if($('cAE')) CH.cAE=new Chart($('cAE'),{type:'line',data:{labels:mn,datasets:[{label:'kWh',data:mn.map(()=>Math.round(18+Math.random()*22)),borderColor:'#ffcc00',backgroundColor:'rgba(255,204,0,.09)',tension:.4,fill:true}]},options:o});
+  if($('cAR')) CH.cAR=new Chart($('cAR'),{type:'line',data:{labels:mn,datasets:[{label:'Rain mm',data:[45,30,65,90,120,80,35,20,40],borderColor:'#38bdf8',tension:.4},{label:'Irrigation L×10',data:[82,75,60,40,30,48,73,88,71],borderColor:'#00ff88',tension:.4}]},options:o});
+  if($('cAC')) CH.cAC=new Chart($('cAC'),{type:'radar',data:{labels:['Rice','Wheat','Corn','Cotton','Soy','Sugarcane'],datasets:[{label:'Efficiency%',data:[85,70,78,62,80,72],borderColor:'#00ff88',backgroundColor:'rgba(0,255,136,.12)',pointBackgroundColor:'#00ff88'}]},options:or});
+}
+
+/* PAGE: ALERTS */
+function pAlerts(){
+  return`<div>
+    <div class="ph fu"><h1>🔔 ${T('alerts')}</h1><p>System alerts and notifications</p></div>
+    <div class="g4">
+      ${[['🚨','Critical','1','var(--coral)'],['⚠️','Warnings','2','var(--gold)'],['ℹ️','Info','2','var(--sky)'],['✅','Resolved','8','var(--g1)']].map(([ic,l,v,c])=>`
+        <div class="card fu" style="text-align:center">
+          <div style="font-size:24px">${ic}</div>
+          <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:900;color:${c}">${v}</div>
+          <div style="font-size:11px;color:var(--tx2)">${l}</div>
+        </div>`).join('')}
+    </div>
+    <div class="card fu a2">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:13px">
+        <div class="ct" style="margin:0">📋 All Notifications</div>
+        <button class="btn btn-o btn-sm">✓ Mark All Read</button>
+      </div>
+      ${ALTS.map(a=>`
+        <div class="arow a-${a.t==='critical'?'crit':a.t==='warning'?'warn':a.t==='info'?'info':'ok'}">
+          <span style="font-size:21px">${a.i}</span>
+          <div style="flex:1"><div style="font-size:13px;font-weight:700;margin-bottom:2px">${a.ti}</div>
+               <div style="font-size:11px;color:var(--tx2);line-height:1.5">${a.desc}</div></div>
+          <div style="text-align:right">
+            <div style="font-size:10px;color:var(--tx3);white-space:nowrap;margin-bottom:5px">${a.time}</div>
+            <span class="badge ${a.t==='critical'?'br':a.t==='warning'?'by':a.t==='success'?'bg':'bs'}">${a.t}</span>
+          </div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+/* PAGE: SETTINGS */
+function pSettings(){
+  const s=G.sets, u=G.user;
+  return`<div>
+    <div class="ph fu"><h1>⚙️ ${T('settings')}</h1><p>Configure thresholds, automation and preferences</p></div>
+    <div class="g2">
+      <div>
+        <div class="card" style="margin-bottom:13px">
+          <div class="ct">💧 Irrigation Thresholds</div>
+          <div class="field">
+            <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+              <label class="fl" style="margin:0">Moisture Threshold</label>
+              <span style="color:var(--teal);font-weight:800;font-size:13px" id="thrLbl">${s.thr}%</span>
+            </div>
+            <input type="range" min="20" max="90" value="${s.thr}" oninput="updThr(this.value)"/>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ct">🤖 Automation</div>
+          ${[['auto','Auto Irrigation','Trigger pump automatically below threshold'],['sms','SMS Alerts','Critical alert text messages'],['email','Email Reports','Daily summary emails'],['push','Push Notifications','Browser notifications']].map(([k,n,d])=>`
+            <div class="togrow">
+              <div><div style="font-size:13px;font-weight:600">${n}</div><div style="font-size:11px;color:var(--tx2);margin-top:2px">${d}</div></div>
+              <label class="tog2">
+                <input type="checkbox"${s[k]?' checked':''} onchange="G.sets['${k}']=this.checked"/>
+                <div class="tog2-track"></div><div class="tog2-thumb"></div>
+              </label>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:13px">
+          <div class="ct">👤 Profile</div>
+          <div class="field"><label class="fl">Full Name</label><input class="inp" value="${u?.name||''}"/></div>
+          <div class="field"><label class="fl">Email</label><input class="inp" value="${u?.email||''}"/></div>
+          <div class="field"><label class="fl">Farm Name</label><input class="inp" value="${u?.farm||''}"/></div>
+          <button class="btn btn-p">💾 Save Changes</button>
+        </div>
+        <div class="card">
+          <div class="ct">🎨 Appearance</div>
+          <div style="display:flex;gap:9px;margin-bottom:14px">
+            ${[['dark','🌙','Dark Mode'],['light','☀️','Light Mode']].map(([v,ic,l])=>`
+              <div onclick="setTheme('${v}')" style="flex:1;border-radius:10px;padding:12px;text-align:center;cursor:pointer;border:2px solid ${G.theme===v?'var(--g1)':'var(--bd)'};background:${G.theme===v?'var(--sur2)':'var(--sur)'}">
+                <div style="font-size:18px">${ic}</div>
+                <div style="font-size:11px;margin-top:3px;color:${G.theme===v?'var(--g1)':'var(--tx2)'}">${l}</div>
+              </div>`).join('')}
+          </div>
+          <div class="field"><label class="fl">Language</label>
+            <select class="inp" onchange="changeLang(this.value)">
+              <option value="en"${G.lang==='en'?' selected':''}>🌐 English</option>
+              <option value="ta"${G.lang==='ta'?' selected':''}>தமிழ் — Tamil</option>
+              <option value="hi"${G.lang==='hi'?' selected':''}>हिन्दी — Hindi</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function updThr(v){ G.sets.thr=parseInt(v); const e=$('thrLbl'); if(e)e.textContent=v+'%'; }
+
+/* PAGE: ABOUT */
+function pAbout(){
+  return`<div>
+    <div class="ph fu">
+      <div class="ph-tag">🏆 Hackathon Project · Smart Agriculture Track</div>
+      <h1>About AquaFarm</h1>
+      <p>A web application built to solve real-world irrigation inefficiency in Indian agriculture</p>
+    </div>
+    <div class="card fu" style="margin-bottom:16px;padding:30px;background:linear-gradient(135deg,rgba(0,255,136,.07),rgba(0,212,170,.04));text-align:center">
+      <div style="font-size:52px;margin-bottom:9px;animation:float 4s ease-in-out infinite">💧</div>
+      <h2 style="font-size:26px;font-weight:900;color:var(--g1);margin-bottom:6px">AquaFarm – Smart Irrigation System</h2>
+      <p style="color:var(--tx2);font-size:13px;max-width:620px;margin:0 auto 14px;line-height:1.85">
+        Built during a hackathon to tackle water wastage in agriculture. AquaFarm combines real-time IoT sensor data with an AI prediction engine so farmers can decide <em>when</em>, <em>where</em>, and <em>how much</em> to irrigate — cutting waste by up to 40%.
+      </p>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <span class="badge bg">🏆 Hackathon 2025</span>
+        <span class="badge bs">Smart Agriculture</span>
+        <span class="badge by">IoT + AI</span>
+        <span class="badge bt">Zero Install</span>
+      </div>
+    </div>
+    <div class="g2" style="margin-bottom:16px">
+      <div class="card fu">
+        <div class="ct">❓ Why We Built This</div>
+        <p style="font-size:13px;color:var(--tx2);line-height:1.9;margin-bottom:10px">Agriculture uses over <strong style="color:var(--g1)">80% of freshwater</strong> in India, yet nearly <strong style="color:var(--coral)">40–50% is wasted</strong> through over-irrigation and fixed schedules with no sensor data.</p>
+        <p style="font-size:13px;color:var(--tx2);line-height:1.9">Most small farmers have no access to real-time soil or weather data. AquaFarm fixes this with a simple, zero-install web interface that runs in any browser.</p>
+      </div>
+      <div class="card fu a2">
+        <div class="ct">🛠️ Technology Used</div>
+        ${[['Frontend','HTML5 + CSS3 + Vanilla JS (single file, zero install)'],['Charts','Chart.js 4.4 (CDN)'],['Backend','Python FastAPI + Uvicorn'],['AI Logic','Rule-based threshold + water deficit model'],['User Storage','Browser localStorage — no server needed'],['Fonts','Playfair Display + Plus Jakarta Sans']].map(([l,v])=>`
+          <div style="padding:8px 0;border-bottom:1px solid var(--bd);display:flex;gap:11px">
+            <span style="font-size:11px;font-weight:700;color:var(--tx);min-width:82px;flex-shrink:0">${l}</span>
+            <span style="font-size:12px;color:var(--tx2)">${v}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="card fu">
+      <div class="ct">🏅 What This App Covers — All 12 Pages</div>
+      <div class="g3" style="margin:0">
+        ${[['🏠','Dashboard','Overview of all farm metrics with live charts and weather.'],
+           ['📡','Sensors','Animated SVG gauges and live line charts for all sensor nodes.'],
+           ['🤖','AI Prediction','Two modes — sensor auto-fetch & manual sliders — with irrigation decision and confidence score.'],
+           ['🗺️','Farm Map','Colour-coded zone grid showing moisture, active/dry/idle status.'],
+           ['💧','Calculator','Enter field size, crop, soil and moisture → get exact water amount and duration.'],
+           ['🌤️','Weather','7-day forecast with rain probability charts to pre-plan irrigation.'],
+           ['📜','History','Log table with date filter and CSV export.'],
+           ['📊','Analytics','Monthly water/energy charts, rain vs irrigation and crop efficiency radar.'],
+           ['🔔','Alerts','Critical, warning, info and resolved notifications.'],
+           ['⚙️','Settings','Threshold, automation toggles, profile, theme, language.'],
+           ['🛡️','Admin','User list (including registered accounts), sensor nodes, system logs.'],
+           ['ℹ️','About','This page — genuine hackathon documentation.']].map(([ic,ti,de])=>`
+          <div style="background:var(--sur);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:9px">
+            <div style="font-size:18px;margin-bottom:4px">${ic}</div>
+            <div style="font-size:12px;font-weight:800;margin-bottom:3px">${ti}</div>
+            <div style="font-size:11px;color:var(--tx2);line-height:1.6">${de}</div>
+          </div>`).join('')}
+      </div>
+      <div style="margin-top:14px;padding:12px;background:var(--sur2);border-radius:9px;font-size:12px;color:var(--tx3);text-align:center;line-height:1.8">
+        Built with 💚 for the Smart Agriculture Hackathon · 2025 ·
+        <strong style="color:var(--tx2)">AquaFarm</strong> — Smart Irrigation for Every Farmer
+      </div>
+    </div>
+  </div>`;
+}
+
+/* PAGE: ADMIN */
+function pAdmin(){
+  const users=getAllUsers();
+  return`<div>
+    <div class="ph fu"><h1>🛡️ ${T('admin')}</h1><p>Manage users, sensors and system logs</p></div>
+    <div class="g4">
+      ${[['👤','Users',users.length,'var(--sky)'],['📡','Sensor Nodes','14','var(--teal)'],['⏰','Schedules','6','var(--g1)'],['📋','Logs','1.2k','var(--gold)']].map(([ic,l,v,c])=>`
+        <div class="card fu" style="text-align:center">
+          <div style="font-size:24px">${ic}</div>
+          <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:900;color:${c}">${v}</div>
+          <div style="font-size:11px;color:var(--tx2)">${l}</div>
+        </div>`).join('')}
+    </div>
+    <div class="g2">
+      <div class="card fu a2">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:13px">
+          <div class="ct" style="margin:0">👥 User Management</div>
+          <button class="btn btn-p btn-sm" onclick="go('register')">+ Add User</button>
+        </div>
+        ${users.map(u=>`
+          <div class="urow">
+            <div class="uava" style="background:linear-gradient(135deg,${u.color||'#00b858'},${u.color||'#00b858'}88)">${u.ini}</div>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:700">${u.name}</div>
+              <div style="font-size:11px;color:var(--tx3)">${u.email} · ${u.farm||'—'}</div>
+            </div>
+            <span class="badge ${u.role==='Admin'?'by':'bs'}">${u.role}</span>
+            <span class="badge bg">active</span>
+          </div>`).join('')}
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:13px">
+          <div class="ct">📡 Sensor Nodes</div>
+          <div class="twrap" style="max-height:195px;overflow-y:auto">
+            <table>
+              <thead><tr><th>Node</th><th>Zone</th><th>Status</th><th>Battery</th></tr></thead>
+              <tbody>
+                ${ZONES.map((z,i)=>`<tr>
+                  <td>NODE-${String(i+1).padStart(3,'0')}</td><td>${z.id}</td>
+                  <td><span class="badge ${i!==4?'bg':'br'}">${i!==4?'Online':'Offline'}</span></td>
+                  <td style="color:${i<5?'var(--g1)':'var(--gold)'}">${Math.max(15,90-i*10)}%</td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ct">📋 System Logs</div>
+          ${[['✅','Zone A1 irrigation completed','2 min ago'],['⚠️','Node B1 offline','8 min ago'],['ℹ️','Weather API refreshed','15 min ago'],['✅','Settings saved','30 min ago'],['⚠️','Tank below 30%','1 hr ago']].map(([ic,m,t])=>`
+            <div style="display:flex;gap:9px;padding:7px 0;border-bottom:1px solid var(--bd);font-size:11px">
+              <span>${ic}</span><span style="flex:1;color:var(--tx2)">${m}</span>
+              <span style="color:var(--tx3);white-space:nowrap">${t}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   RENDER ENGINE
+============================================================ */
+function render(){
+  document.documentElement.setAttribute('data-theme',G.theme);
+  const app=document.getElementById('app');
+
+  // Public pages (no login needed)
+  if(G.page==='landing'){ app.innerHTML=pLanding(); return; }
+  if(G.page==='login'){   app.innerHTML=pLogin();   return; }
+  if(G.page==='register'){app.innerHTML=pRegister();return; }
+
+  // Protected pages — redirect to login if not signed in
+  if(!G.user){ G.page='login'; app.innerHTML=pLogin(); return; }
+
+  const PAGES={dashboard:pDash,sensors:pSensors,prediction:pPred,map:pMap,
+    calculator:pCalc,weather:pWeather,history:pHistory,analytics:pAnalytics,
+    alerts:pAlerts,settings:pSettings,about:pAbout,admin:pAdmin};
+  const TITLES={dashboard:T('dashboard'),sensors:T('sensors'),prediction:T('prediction'),
+    map:T('map'),calculator:T('calc'),weather:T('weather'),history:T('history'),
+    analytics:T('analytics'),alerts:T('alerts'),settings:T('settings'),
+    about:'About AquaFarm',admin:T('admin')};
+
+  app.innerHTML=`<div class="shell">
+    ${Sidebar()}
+    <div class="main">
+      ${Topbar(TITLES[G.page]||'')}
+      <div class="content">${(PAGES[G.page]||pDash)()}</div>
+    </div>
+  </div>`;
+
+  requestAnimationFrame(()=>{
+    if(G.page==='dashboard') initDashCH();
+    if(G.page==='sensors')   initSensorCH();
+    if(G.page==='weather')   initWeatherCH();
+    if(G.page==='analytics') initAnalyticsCH();
+  });
+}
+
+/* ── THEME & LANG ─────────────────────────────────────────── */
+function toggleTheme(){ G.theme=G.theme==='dark'?'light':'dark'; render(); }
+function setTheme(v){ G.theme=v; render(); }
+function changeLang(l){ G.lang=l; render(); }
+
+/* ── LIVE SENSOR SIMULATION ───────────────────────────────── */
+setInterval(()=>{
+  const s=G.sensor;
+  const jit=(v,sp,mn,mx)=>Math.min(mx,Math.max(mn,+(v+(Math.random()-.5)*sp).toFixed(1)));
+  s.m    =jit(s.m,1.4,20,95);
+  s.t    =jit(s.t,.7,18,44);
+  s.h    =jit(s.h,1.1,30,98);
+  s.tank =jit(s.tank,.08,8,100);
+  s.rain =jit(s.rain,.6,0,100);
+  if(G.predMode==='sensor'){
+    G.predIn={m:Math.round(s.m),t:Math.round(s.t),h:Math.round(s.h),tank:Math.round(s.tank),rain:Math.round(s.rain)};
+  }
+},5000);
+
+/* ── EXPOSE GLOBALS ───────────────────────────────────────── */
+Object.assign(window,{
+  go,changeLang,toggleTheme,setTheme,
+  doLogin,doRegister,quickLogin,doLogout,showForgot,
+  toggleEye,livePwStr,liveMatch,
+  setPredMode,syncPred,updPred,runPred,
+  doCalc,updThr,exportCSV,
+});
+
+/* ── BOOT: restore remembered session ─────────────────────── */
+(function boot(){
+  try{
+    const s=JSON.parse(localStorage.getItem('aqf_sess')||'null');
+    if(s && Date.now()-s.ts<7*24*3600000){
+      const found=getAllUsers().find(u=>u.username===s.u);
+      if(found){ G.user={...found}; G.page='dashboard'; }
+    }
+  }catch(e){}
+  render();
+})();
+</script>
+</body>
+</html> 
